@@ -93,7 +93,7 @@ export class Context {
         if (this.authorizationHeader) {
             const result = await Context.GetToken(this, this.environment, this.apiKey, this.secretKey);
             this.authorizationHeader = result.data.access_token;
-            if (process.env.DEBUG) console.log(`Access token renewed for the clientId ${this.apiKey}`);
+            if (process.env.DEBUG === "true") console.log(`Access token renewed for the clientId ${this.apiKey}`);
         }
     }
 
@@ -312,6 +312,20 @@ export class Context {
     }
 
     public async PatchAsync(endPoint: string, className: string | undefined, key: string | number | undefined, entities: Array<string>) {
+        let delta: Array<DeltaItem> = [];
+        this.changes.forEach(field => {
+            if (key && field.Key) {
+                if (className === undefined || (className === field.ClassName && key.toString() === field.Key.toString())) {
+                    delta.push(field);
+                }
+            }
+        });
+
+        if (!delta.length) {
+            if (process.env.DEBUG === "true") console.log("No batch changes to process.");
+            return;
+        }
+
         var boundary = Guid.newGuid();
 
         let headers: any = {};
@@ -323,15 +337,6 @@ export class Context {
             method: "POST",
             headers: headers
         }
-
-        let delta: Array<DeltaItem> = [];
-        this.changes.forEach(field => {
-            if (key && field.Key) {
-                if (className === undefined || (className === field.ClassName && key.toString() === field.Key.toString())) {
-                    delta.push(field);
-                }
-            }
-        });
         
         let data = this.pack(endPoint, delta, entities, boundary);
 
@@ -342,16 +347,16 @@ export class Context {
             if (errors && errors.length) {
                 let errorMessage: Array<string> = [];
                 errors.forEach(function (error) { 
-                    if (error.body.error) {
+                    if (error && error.body && error.body.error) {
                         errorMessage.push(error.body.error);
-                    } else if (error.body.errors) {
+                    } else if (error && error.body && error.body.errors) {
                         Object.keys(error.body.errors).forEach(key => {
                             errorMessage.push(error.body.errors[key].join(','));
                         });
                     }
                 });
                 const msg = `BATCH request failed: ${errorMessage.join(',')}`;
-                console.log(msg);
+                if (process.env.DEBUG === "true") console.log(msg);
                 throw msg;
             }
         }
@@ -360,7 +365,7 @@ export class Context {
             this.changes = this.changes.filter(item => item.Id === savedItem.Id);
         })        
 
-        console.log(response.data)
+        if (process.env.DEBUG === "true") console.log(response.data)
     }
 
     private pack(endPoint: string, delta: Array<DeltaItem>, entities: Array<string>, boundary: string): string {
@@ -434,7 +439,7 @@ export class Context {
         let cacheKey = `${hashCode(this.Domain)}-${page}-${itemsPerPage}-${hashCode(`${sql}`)}-${hashCode(parameters.map(i => ( `${i.name}=${i.value || "__$null$__"}`).toString()).join('-'))}`;
         let resultSet = Context.queryCache.get(cacheKey) as Array<any>;
         if (resultSet && !avoidCache) {
-            if (process.env.DEBUG) console.log(`Cache hit for ${sql}`);
+            if (process.env.DEBUG === "true") console.log(`Cache hit for ${sql}`);
             return resultSet;
         }
 
@@ -497,7 +502,7 @@ export class Context {
         let cacheKey = `${environment ? hashCode(environment) : ""}-${page}-${itemsPerPage}-${hashCode(`${sql}`)}-${hashCode(parameters.map(i => ( `${i.name}=${i.value || "__$null$__"}`).toString()).join('-'))}`;
         let resultSet = Context.queryCache.get(cacheKey) as Array<any>;
         if (resultSet && !avoidCache) {
-            if (process.env.DEBUG) console.log(`Cache hit for ${sql}`);
+            if (process.env.DEBUG === "true") console.log(`Cache hit for ${sql}`);
             return resultSet;
         }
 

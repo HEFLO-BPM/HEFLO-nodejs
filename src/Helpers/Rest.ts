@@ -21,13 +21,13 @@ async function postAsync(context: Context, endpoint: string, payload: any, confi
             config.headers["Authorization"] = `Bearer ${context.AuthorizationHeader}`;
         } else {
             const currentWaitTime = waitTime ?? counter * defaultIncrementDelay;
-            if (process.env.DEBUG) console.log(`Too many calls for the endpoint ${endpoint}. Waiting ${currentWaitTime}ms for the next call.`);
+            if (process.env.DEBUG === "true") console.log(`Too many calls for the endpoint ${endpoint}. Waiting ${currentWaitTime}ms for the next call.`);
             await Sleep(currentWaitTime);
         }
     }
 
     return axios.post(endpoint, payload, config).catch((err) => {
-        if (process.env.DEBUG) console.log(err);
+        if (process.env.DEBUG === "true") console.log(err);
         if (err.response.status == 429 && counter < maxRetry) {
             counter++;
             let waitTime = undefined;
@@ -50,13 +50,13 @@ async function getAsync(context: Context, endpoint: string, config: AxiosRequest
             config.headers["Authorization"] = `Bearer ${context.AuthorizationHeader}`;
         } else {
             const currentWaitTime = waitTime ?? counter * defaultIncrementDelay;
-            if (process.env.DEBUG) console.log(`Too many calls for the endpoint ${endpoint}. Waiting ${currentWaitTime}ms for the next call.`);
+            if (process.env.DEBUG === "true") console.log(`Too many calls for the endpoint ${endpoint}. Waiting ${currentWaitTime}ms for the next call.`);
             await Sleep(currentWaitTime);
         }
     }
 
     return axios.get(endpoint, config).catch((err) => {
-        if (process.env.DEBUG) console.log(err);
+        if (process.env.DEBUG === "true") console.log(err);
         if (err.response.status == 429 && counter < maxRetry) {
             counter++;
             let waitTime = undefined;
