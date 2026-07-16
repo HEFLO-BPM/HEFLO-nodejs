@@ -430,11 +430,13 @@ Besides the generic views (`vWorkItem`, `vToken`, `vPerson`, ...), every publish
 
 Custom fields appear both by their **alias** (e.g. `title`) and by their **technical name** `cp_<hash>`. If a query fails on the alias, the field may only be exposed under its technical name.
 
-Query the `_wi` table when you want instance-level data (one row per request):
+Query the `_wi` table when you want instance-level data (one row per request). Since we have an event context here, use `context.QueryAsync` — no domain/API/secret keys needed:
 
 ```ts
 exports.listInstances = async (req: any, resp: any) => {
   try {
+    const context = new HEFLOApi.Events.WorkItem.OnExecuteSequenceFlow(req)
+
     const search = req.body['search'] || ''
     const page = req.body['page'] || 1
     const itemsPerPage = req.body['itemsPerPage'] || 10
@@ -448,13 +450,9 @@ exports.listInstances = async (req: any, resp: any) => {
         and wi.Number is not null
       order by wi.Number desc`
 
-    const rows = await HEFLOApi.Context.QueryAsync(
-      String(process.env.DOMAIN),
-      String(process.env.CLIENT_ID),
-      String(process.env.CLIENT_SECRET),
-      sql, page, itemsPerPage,
-      [{ name: '@search', value: `%${search}%` }]
-    )
+    const rows = await context.QueryAsync(sql, page, itemsPerPage, [
+      { name: '@search', value: `%${search}%` }
+    ])
 
     resp.json(rows.map((item: any) => ({ id: item.Oid, name: `${item.Number} ${item.title}` })))
   } catch (err) {
