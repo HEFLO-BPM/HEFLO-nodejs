@@ -417,6 +417,94 @@ exports.searchPeople = async (req: any, resp: any) => {
 }
 ```
 
+### Process tables (`_wi` and `_tk`)
+
+Besides the generic views (`vWorkItem`, `vToken`, `vPerson`, ...), every published process gets **two dedicated export tables** named after it:
+
+| Table | Grain | Holds |
+| --- | --- | --- |
+| `vp<ProcessName>_wi` | One row per **instance** (work item) | The whole request, regardless of how many tokens it has. Look here for request-level data such as `Requestor` / `RequestorEmail` / `RequestorOid`, plus every form field of the process. |
+| `vp<ProcessName>_tk` | One row per **token** (task execution) | Per-thread data. A token is like a thread of the process: usually there is only one, but constructs such as **parallel gateways** split the flow into several tokens, each with its own `Responsible` / `ResponsibleEmail`. |
+
+> **`Requestor` vs `Responsible`.** Use `_wi.Requestor` when you want who opened the request (one per instance). Use `_tk.Responsible` when you want who owns a specific task/thread — with parallel branches there can be several distinct responsibles for the same instance.
+
+Custom fields appear both by their **alias** (e.g. `title`) and by their **technical name** `cp_<hash>`. If a query fails on the alias, the field may only be exposed under its technical name.
+
+Query the `_wi` table when you want instance-level data (one row per request):
+
+```ts
+exports.listInstances = async (req: any, resp: any) => {
+  try {
+    const search = req.body['search'] || ''
+    const page = req.body['page'] || 1
+    const itemsPerPage = req.body['itemsPerPage'] || 10
+
+    // vp<ProcessName>_wi — one row per instance (the whole request)
+    // Requestor is the person who opened the request.
+    const sql = `
+      select wi.Oid, wi.Number, wi.title, wi.Requestor
+      from vpMyProcess_wi wi
+      where wi.title like @search
+        and wi.Number is not null
+      order by wi.Number desc`
+
+    const rows = await HEFLOApi.Context.QueryAsync(
+      String(process.env.DOMAIN),
+      String(process.env.CLIENT_ID),
+      String(process.env.CLIENT_SECRET),
+      sql, page, itemsPerPage,
+      [{ name: '@search', value: `%${search}%` }]
+    )
+
+    resp.json(rows.map((item: any) => ({ id: item.Oid, name: `${item.Number} ${item.title}` })))
+  } catch (err) {
+    resp.status(500).send('Error executing listInstances, details: ' + err)
+  }
+}
+```
+
+Query the `_tk` table when you need per-token data — e.g. who is responsible for each open thread. With parallel gateways a single instance can return several rows here, one per token:
+
+```ts
+exports.openTokens = async (req: any, resp: any) => {
+  try {
+    const context = new HEFLOApi.Events.WorkItem.OnExecuteSequenceFlow(req)
+
+    // vp<ProcessName>_tk — one row per token (thread).
+    // Responsible is the user who owns that specific token.
+    const sql = `
+      select tk.Oid as tokenOid, tk.Number as instance,
+             tk.Responsible, tk.ResponsibleEmail
+      from vpMyProcess_tk tk
+      where tk.Number is not null and tk.Number <> '0'
+      order by tk.Number desc`
+
+    const rows = await context.QueryAsync(sql, 1, 100, [])
+    resp.json(rows)
+  } catch (err) {
+    resp.status(500).send('Error executing executedTasks, details: ' + err)
+  }
+}
+```
+
+You can join both tables (and the generic views) to combine instance data with per-task execution data:
+
+```ts
+const sql = `
+  select wi.Number    as instance,
+         wi.title,
+         wi.Requestor,             -- who opened the request (instance level)
+         tk.Oid        as tokenOid,
+         tk.Responsible,           -- who owns this token/thread
+         te.FlowElementText as task,
+         te.StartDate       as taskStart
+  from vpMyProcess_wi wi
+  inner join vpMyProcess_tk tk on tk.Number = wi.Number
+  inner join vTokenExecution te on te.TokenOid = tk.Oid
+  where te.FlowElementText is not null
+  order by wi.Number desc, te.StartDate asc`
+```
+
 A reusable helper that returns a single row or a list:
 
 ```ts
