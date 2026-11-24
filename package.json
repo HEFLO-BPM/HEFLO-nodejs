@@ -1,7 +1,7 @@
 {
   "name": "heflo-api",
   "version": "1.0.37",
-  "author": " HEFLO BPM",
+  "author": "venkidevelopers",
   "description": "HEFLO BPM API for TypeScript",
   "repository": {
     "type": "git",
