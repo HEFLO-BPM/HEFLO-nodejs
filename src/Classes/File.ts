@@ -40,8 +40,8 @@ export class File extends BaseModel {
     public Parse(data: IDictionary) {
         super.Parse(data);
         if (data) {
-            this.filename = data["Url"];
-            this.url = data["Filename"];
+            this.filename = data["Filename"];
+            this.url = data["Url"];
         }
     }
 

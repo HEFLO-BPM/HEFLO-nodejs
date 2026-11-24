@@ -28,13 +28,16 @@ async function postAsync(context: Context, endpoint: string, payload: any, confi
 
     return axios.post(endpoint, payload, config).catch((err) => {
         if (process.env.DEBUG === "true") console.log(err);
-        if (err.response.status == 429 && counter < maxRetry) {
+        const response = err?.response;
+        const status = response?.status;
+        const headers = response?.headers ?? {};
+        if (status == 429 && counter < maxRetry) {
             counter++;
             let waitTime = undefined;
-            if (err.response.headers["x-rate-limit-remaining"])
-                waitTime = +err.response.headers["x-rate-limit-remaining"] + 100;            
+            if (headers["x-rate-limit-remaining"])
+                waitTime = +headers["x-rate-limit-remaining"] + 100;
             return postAsync(context, endpoint, payload, config, counter, waitTime);
-        } if (err.response.status == 401 && counter < maxRetry) {
+        } if (status == 401 && counter < maxRetry) {
             counter++;
             return postAsync(context, endpoint, payload, config, counter, null, true);
         } else
@@ -57,13 +60,16 @@ async function getAsync(context: Context, endpoint: string, config: AxiosRequest
 
     return axios.get(endpoint, config).catch((err) => {
         if (process.env.DEBUG === "true") console.log(err);
-        if (err.response.status == 429 && counter < maxRetry) {
+        const response = err?.response;
+        const status = response?.status;
+        const headers = response?.headers ?? {};
+        if (status == 429 && counter < maxRetry) {
             counter++;
             let waitTime = undefined;
-            if (err.response.headers["x-rate-limit-remaining"])
-                waitTime = +err.response.headers["x-rate-limit-remaining"] + 100;            
+            if (headers["x-rate-limit-remaining"])
+                waitTime = +headers["x-rate-limit-remaining"] + 100;
             return getAsync(context, endpoint, config, counter, waitTime);
-        } if (err.response.status == 401 && counter < maxRetry) {
+        } if (status == 401 && counter < maxRetry) {
             counter++;
             return getAsync(context, endpoint, config, counter, null, true);
         } else

@@ -85,7 +85,12 @@ export class Metadata {
                 if (metaProp && metaProp.length)
                     return metaProp[0]["Name"];
                 else
-                    return undefined;
+                    // The metadata cache can be stale/incomplete (e.g. a property created after the
+                    // class metadata was cached, or a delete-protocol pseudo-field such as "Deleted").
+                    // Fall back to the supplied name instead of returning undefined so callers do not
+                    // throw "Field <name> not found" for fields that actually exist. This mirrors the
+                    // no-metadata branch below, which already returns the alias as-is.
+                    return alias;
             }
         }
         return alias;
@@ -121,6 +126,12 @@ export class Metadata {
      * @returns The type metadata.
      */
     private static async GetClassMetadata(context: Context, className: string): Promise<Class | undefined> {
+        // Guard against an undefined/empty class name (e.g. when a record-list field's
+        // ListEntityName could not be resolved from incomplete metadata). Without this guard
+        // the className.startsWith(...) call below throws a TypeError instead of failing softly.
+        if (!className)
+            return undefined;
+
         let cacheKey = this.buildClassCacheKey(context, className);
         let metaClass: Class;
         if (context.Cache.get(cacheKey) && !context.IsTest) {

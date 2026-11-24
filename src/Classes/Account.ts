@@ -37,7 +37,7 @@ export class Account extends BaseModel {
     * @param {any} value - Current value of the custom field.
     */
     public Set(fieldName: string, value: any) {
-        this.LogChange(Account.ClassOid, fieldName, this.oid, value);
+        this.LogChange(this.classOid, fieldName, this.oid, value);
     }
 
     /**
@@ -59,7 +59,7 @@ export class Account extends BaseModel {
     */
     public set Name(value: string) {
         this.name = value;
-        this.context.addChange(Account.ClassOid, "Name", this.oid, value);
+        this.context.addChange(this.classOid, "Name", this.oid, value);
     }
 
     /**
@@ -74,7 +74,7 @@ export class Account extends BaseModel {
     */
     public set Email(value: string) {
         this.email = value;
-        this.context.addChange(Account.ClassOid, "Email", this.oid, value);
+        this.context.addChange(this.classOid, "Email", this.oid, value);
     }
 
     /**
