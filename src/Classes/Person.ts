@@ -44,6 +44,21 @@ export class Person extends Account {
         this.departmentOid = value;
         this.context.addChange(Person.ClassOid, "DepartmentOid", this.oid, value);
     }
+
+    /**
+    * Get whether the person's account is enabled
+    */
+    public get Enabled(): boolean | undefined {
+        return this.fields["Enabled"];
+    }
+
+    /**
+    * Enable or disable the person's account
+    */
+    public set Enabled(value: boolean | undefined) {
+        this.fields["Enabled"] = value;
+        this.context.addChange(this.classOid, "Enabled", this.oid, value);
+    }
     
     /**
     * Find a person by an identifier
@@ -52,7 +67,7 @@ export class Person extends Account {
     * @returns Object instance of a person.
     */
     public static async FindAsync(context: Context, id: number): Promise<Person> {
-        return <Person>(await context.FindAsync(`${context.StorageRelational}odata/Person(${id})?$select=Oid,Name,Email,DepartmentOid&$selectCustom=true`, 
+        return <Person>(await context.FindAsync(`${context.StorageRelational}odata/Person(${id})?$select=Oid,Name,Email,DepartmentOid,Enabled&$selectCustom=true`, 
             Person.ClassOid, (data: Array<any>) => { return Person.Parse(context, data); } ));
     }
 
@@ -65,7 +80,7 @@ export class Person extends Account {
     */
     public static async WhereAsync(context: Context, filter: string, useCache: boolean = true): Promise<Array<Person>> {
         return <Array<Person>> await context.WhereAsync(Person.ClassOid, 
-            `${context.StorageRelational}odata/Person?$select=Oid,Name,Email,DepartmentOid&$filter=(${filter})&$selectCustom=true`, filter, 
+            `${context.StorageRelational}odata/Person?$select=Oid,Name,Email,DepartmentOid,Enabled&$filter=(${filter})&$selectCustom=true`, filter, 
             (data: Array<any>) => { return Person.Parse(context, data); }, useCache);
     }
 
@@ -89,6 +104,7 @@ export class Person extends Account {
         super.Parse(data);
         if (data) {
             this.departmentOid = data["DepartmentOid"];
+            this.fields["Enabled"] = data["Enabled"];
         }
     }
 
@@ -105,6 +121,7 @@ export class Person extends Account {
                 Name: this.Name,
                 Email: this.Email,
                 DepartmentOid: this.DepartmentOid,
+                Enabled: this.Enabled,
                 RecordKind: "Person",
             }
 

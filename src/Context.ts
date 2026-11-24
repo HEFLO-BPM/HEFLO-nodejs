@@ -361,9 +361,7 @@ export class Context {
             }
         }
 
-        delta.forEach(savedItem => {
-            this.changes = this.changes.filter(item => item.Id === savedItem.Id);
-        })        
+        this.changes = this.changes.filter(item => !delta.some(savedItem => savedItem.Id === item.Id));
 
         if (process.env.DEBUG === "true") console.log(response.data)
     }
@@ -374,16 +372,17 @@ export class Context {
         
         delta.forEach(field => {
             if (!field.RecordValue) {
+                const name = JSON.stringify(field.PropertyName);
                 if (field.Value === undefined || field.Value === null)
-                    content.push(`"${field.PropertyName}": null`)
+                    content.push(`${name}: null`)
                 else if (field.Value instanceof Date)
-                    content.push(`"${field.PropertyName}": "${field.Value.toISOString()}"`);
+                    content.push(`${name}: ${JSON.stringify(field.Value.toISOString())}`);
                 else if (field.Value === '')
-                    content.push("\"" + field.PropertyName + "\": ''");
+                    content.push(`${name}: ''`);
                 else if (!isNaN(+field.Value))
-                    content.push(`"${field.PropertyName}": ${field.Value}`)
+                    content.push(`${name}: ${field.Value}`)
                 else
-                    content.push(`"${field.PropertyName}": "${field.Value}"`);
+                    content.push(`${name}: ${JSON.stringify(String(field.Value))}`);
             }
         });
 

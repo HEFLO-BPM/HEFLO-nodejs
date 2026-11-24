@@ -1,6 +1,6 @@
 {
   "name": "heflo-api",
-  "version": "1.0.35",
+  "version": "1.0.37",
   "author": " HEFLO BPM",
   "description": "HEFLO BPM API for TypeScript",
   "repository": {
@@ -11,7 +11,7 @@
   "typings": "dist/Index.d.ts",
   "scripts": {
     "compile": "tsc",
-    "test": "node tests/rest.test.js"
+    "test": "node tests/rest.test.js && node tests/save.test.js"
   },
   "dependencies": {
     "axios": "0.27.2",
